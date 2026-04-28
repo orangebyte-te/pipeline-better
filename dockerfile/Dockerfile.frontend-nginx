@@ -1,0 +1,5 @@
+FROM harbor.insgeek.cn/devops/nginx:1.23.3
+RUN mkdir -pv /data/logs
+COPY dist /opt/dist
+COPY index.conf /etc/nginx/conf.d/default.conf
+ENTRYPOINT ["nginx", "-g", "daemon off;"]

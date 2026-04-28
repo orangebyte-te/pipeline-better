@@ -1,0 +1,7 @@
+FROM harbor.insgeek.cn/devops/nginx:1.23.3
+RUN mkdir -pv /data/logs
+ARG dir
+COPY dist /opt/dist/${dir}
+COPY index.conf /etc/nginx/conf.d/default.conf
+RUN sed -i "s/__SUBPATH__/${dir}/g" /etc/nginx/conf.d/default.conf
+ENTRYPOINT ["nginx", "-g", "daemon off;"]

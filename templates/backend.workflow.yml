@@ -1,0 +1,63 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      variables:
+        EMPTY_STRING: '""'
+        NULL_VALUE: 'null'
+        EMPTY_ARRAY: '[]'
+        PIPELINE_MODE: 'mr'
+
+    - if: '$CI_COMMIT_BRANCH =~ /^feature.*/ || $CI_COMMIT_BRANCH =~ /^feature_test.*/'
+      variables:
+        PIPELINE_MODE: 'backend'
+        image_env: 'dev'
+        deploy_targets: 'dev'
+        skip_mvn_test: 'true'
+        dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+        RUNNER_TAG: 'dev-runner-k8s-ali'
+
+    - if: '$CI_COMMIT_BRANCH =~ /^develop.*/'
+      variables:
+        PIPELINE_MODE: 'backend'
+        image_env: 'fat'
+        deploy_targets: 'fat base'
+        skip_mvn_test: 'false'
+        dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+        RUNNER_TAG: 'dev-runner-k8s-ali'
+
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      variables:
+        PIPELINE_MODE: 'backend'
+        image_env: 'fat'
+        deploy_targets: 'fat base'
+        skip_mvn_test: 'false'
+        dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+        RUNNER_TAG: 'dev-runner-k8s-ali'
+
+    - if: '$CI_COMMIT_BRANCH == "release"'
+      variables:
+        PIPELINE_MODE: 'backend'
+        image_env: 'uat'
+        image_source_env: 'uat'
+        deploy_targets: 'uat pro'
+        skip_mvn_test: 'true'
+        dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+        RUNNER_TAG: 'dev-runner-k8s-ali'
+
+    - if: '$CI_COMMIT_BRANCH =~ /^platform.*/'
+      variables:
+        PIPELINE_MODE: 'backend'
+        image_env: 'platform'
+        deploy_targets: 'platform'
+        skip_mvn_test: 'true'
+        dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+        RUNNER_TAG: 'dev-runner-k8s-ali'
+
+    - if: '$CI_COMMIT_BRANCH =~ /^vintage.*/'
+      variables:
+        PIPELINE_MODE: 'backend'
+        image_env: 'vintage'
+        deploy_targets: 'vintage'
+        skip_mvn_test: 'true'
+        dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+        RUNNER_TAG: 'dev-runner-k8s-ali'

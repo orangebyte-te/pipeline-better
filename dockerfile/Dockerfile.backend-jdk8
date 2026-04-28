@@ -1,0 +1,13 @@
+FROM harbor.insgeek.cn/base/centos7:v7
+LABEL maintainer="yangdong dong.yang@insgeek.com"
+
+ARG APP_JAR=target/APP.jar
+ENV JAVA_HOME=/opt/jdk1.8.0_251
+ENV PATH=$PATH:/opt/jdk1.8.0_251/bin
+ENV LANG=en_GB.utf8
+
+RUN mkdir -pv /data/logs /data/target /oss
+COPY ${APP_JAR} /data/target/APP.jar
+WORKDIR /data
+
+ENTRYPOINT ["/bin/bash","-lc","java ${JAVA_OPTS} -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dsentinel.datasource.file=/data/logs -server -Xmx${Xmx}m -Xms${Xms}m -Xmn${Xmn}m -Xss512k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/data/logs -jar /data/target/APP.jar --server.port=${SERVER_PORT:-8080}"]

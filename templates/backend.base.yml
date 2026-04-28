@@ -1,0 +1,304 @@
+include:
+  - local: 'templates/backend.workflow.yml'
+
+stages:
+  - build
+  - quality
+  - package
+  - notify
+  - deploy_meta
+
+default:
+  tags:
+    - ${RUNNER_TAG}
+  interruptible: true
+  retry: 1
+
+variables:
+  MAVEN_IMAGE: 'harbor.insgeek.cn/base/mvn:3.6.3'
+  KANIKO_IMAGE: 'harbor.insgeek.cn/base/kaniko-project/executor:v1'
+  CURL_IMAGE: 'harbor.insgeek.cn/devops/curl:v1'
+  PYTHON_IMAGE: 'harbor.insgeek.cn/base/python-build:3.9-pipeline'
+  KUSTOMIZE_IMAGE: 'harbor.insgeek.cn/base/kustomize:v4.5.4'
+  DOCKERFILE_REMOTE_PATH: 'dockerfile/${dockerfile_name}'
+  SONAR_NOTIFY_SCRIPT: 'scripts/sonarqube_notify.py'
+  GIT_STRATEGY: fetch
+  IMAGE_REGISTRY: 'harbor.insgeek.cn'
+  DOCKER_IMAGE_NAME: '${CI_PROJECT_TITLE}'
+  DEPLOY_CONFIG_PROJECT_PATH: '${CI_PROJECT_TITLE}'
+  TEMPLATE_PROJECT_PATH_ENCODED: 'devops%2Fpipeline-better'
+  TEMPLATE_REF: 'main'
+
+cache:
+  key: '$CI_PROJECT_TITLE-$CI_COMMIT_REF_SLUG'
+  paths:
+    - .m2/repository
+
+build_backend:
+  stage: build
+  image: ${MAVEN_IMAGE}
+  script:
+    - export JAVA_HOME=/opt/jdk1.8.0_102
+    - export PATH="$PATH:/opt/jdk1.8.0_102/bin:/opt/apache-maven-3.6.3/bin"
+    - mvn clean package -Dmaven.test.skip=${skip_mvn_test}
+    - |
+      echo 'Build artifacts under target/:'
+      if [ -d target ]; then
+        find target -maxdepth 1 -type f | sort
+      else
+        echo 'target directory does not exist after mvn package'
+        exit 1
+      fi
+    - |
+      if [ -f target/APP.jar ]; then
+        echo 'Using existing target/APP.jar'
+        ls -l target/APP.jar
+      else
+        APP_JAR_CANDIDATE=$(find target -maxdepth 1 -type f -name '*.jar' \
+          ! -name 'APP.jar' \
+          ! -name '*-sources.jar' \
+          ! -name '*-javadoc.jar' \
+          ! -name '*-tests.jar' \
+          ! -name '*-test.jar' \
+          ! -name '*-original.jar' \
+          | sort \
+          | head -n 1)
+        if [ -z "$APP_JAR_CANDIDATE" ]; then
+          echo 'No runnable jar found in target/. Expected a main application jar to copy as target/APP.jar.'
+          find target -maxdepth 1 -type f | sort || true
+          exit 1
+        fi
+        echo "Using application jar: $APP_JAR_CANDIDATE"
+        cp "$APP_JAR_CANDIDATE" target/APP.jar
+        ls -l target/APP.jar
+      fi
+  rules:
+    - if: '$PIPELINE_MODE == "backend"'
+      when: on_success
+
+sonar_scan:
+  stage: quality
+  image: harbor.insgeek.cn/base/sonar-scanner-cli:11.5
+  script:
+    - test -n "$SONAR_HOST_URL"
+    - test -n "$SONAR_TOKEN"
+    - sonar-scanner -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" -Dsonar.projectKey="$CI_PROJECT_TITLE-${CI_COMMIT_REF_NAME##*/}"
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^develop.*/'
+      when: on_success
+
+notify_quality_gate:
+  stage: notify
+  image: ${PYTHON_IMAGE}
+  script:
+    - mkdir -p target
+    - |
+      cat > target/sonarqube_notify.py <<'PY'
+      import json
+      import os
+      import sys
+      import requests
+
+      project = sys.argv[1]
+      skip_error = (sys.argv[2].lower() == 'true') if len(sys.argv) > 2 else False
+      sonar_host = os.environ['SONAR_HOST_URL'].rstrip('/')
+      sonar_token = os.environ['SONAR_TOKEN']
+      dingtalk_webhook = os.environ.get('DINGTALK_WEBHOOK', '')
+
+      metrics = 'alert_status,bugs,vulnerabilities,code_smells,new_coverage,duplicated_lines_density,security_hotspots'
+      url = f"{sonar_host}/api/measures/search?projectKeys={project}&metricKeys={metrics}"
+      resp = requests.get(url, auth=(sonar_token, ''), timeout=20)
+      resp.raise_for_status()
+      data = resp.json()
+      values = {item['metric']: item.get('value') or item.get('period', {}).get('value', '-') for item in data.get('measures', [])}
+      status = values.get('alert_status', 'UNKNOWN')
+      text = (
+          f"项目: {project}\n"
+          f"状态: {status}\n"
+          f"Bug: {values.get('bugs','-')}\n"
+          f"漏洞: {values.get('vulnerabilities','-')}\n"
+          f"安全热点: {values.get('security_hotspots','-')}\n"
+          f"代码异味: {values.get('code_smells','-')}\n"
+          f"新代码覆盖率: {values.get('new_coverage','-')}%\n"
+          f"重复率: {values.get('duplicated_lines_density','-')}%\n"
+          f"详情: {sonar_host}/dashboard?id={project}"
+      )
+      print(text)
+      if dingtalk_webhook:
+          requests.post(dingtalk_webhook, json={"msgtype": "text", "text": {"content": text}}, timeout=20).raise_for_status()
+      if status == 'ERROR' and not skip_error:
+          sys.exit(1)
+      PY
+    - |
+      python3 target/sonarqube_notify.py \
+        "$CI_PROJECT_TITLE-${CI_COMMIT_REF_NAME##*/}" \
+        "${skip_sonarqube_err:-false}"
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^develop.*/'
+      when: on_success
+
+prepare_dockerfile:
+  stage: package
+  image: ${CURL_IMAGE}
+  script:
+    - mkdir -p target
+    - |
+      case "${dockerfile_name}" in
+        Dockerfile.backend-jdk8-agent)
+          cat > target/Dockerfile.runtime <<'EOF'
+      FROM harbor.insgeek.cn/devops/ubuntu-24.04:v5
+      LABEL maintainer="yangdong dong.yang@insgeek.com"
+
+      ARG APP_JAR=target/APP.jar
+      ENV JAVA_HOME=/opt/jdk1.8.0_251
+      ENV PATH=$PATH:/opt/jdk1.8.0_251/bin
+
+      RUN mkdir -pv /data/logs /data/target /oss
+      COPY ${APP_JAR} /data/target/APP.jar
+      WORKDIR /data
+
+      ENTRYPOINT ["/bin/bash","-lc","java ${JAVA_OPTS} -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dsentinel.datasource.file=/data/logs -javaagent:/data/agent/skywalking-agent.jar=agent.service_name=${PROJECT_NAME},collector.backend_service=${SW_SERVER} -server -Xmx${Xmx}m -Xms${Xms}m -Xmn${Xmn}m -Xss512k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/oss/${INSGEEK_ENV}/${serviceName} -jar /data/target/APP.jar --server.port=${SERVER_PORT:-8080}"]
+      EOF
+          ;;
+        Dockerfile.backend-jdk8)
+          cat > target/Dockerfile.runtime <<'EOF'
+      FROM harbor.insgeek.cn/base/centos7:v7
+      LABEL maintainer="yangdong dong.yang@insgeek.com"
+
+      ARG APP_JAR=target/APP.jar
+      ENV JAVA_HOME=/opt/jdk1.8.0_251
+      ENV PATH=$PATH:/opt/jdk1.8.0_251/bin
+      ENV LANG=en_GB.utf8
+
+      RUN mkdir -pv /data/logs /data/target /oss
+      COPY ${APP_JAR} /data/target/APP.jar
+      WORKDIR /data
+
+      ENTRYPOINT ["/bin/bash","-lc","java ${JAVA_OPTS} -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dsentinel.datasource.file=/data/logs -server -Xmx${Xmx}m -Xms${Xms}m -Xmn${Xmn}m -Xss512k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/data/logs -jar /data/target/APP.jar --server.port=${SERVER_PORT:-8080}"]
+      EOF
+          ;;
+        *)
+          echo "Unsupported dockerfile_name: ${dockerfile_name}" >&2
+          echo 'Supported values: Dockerfile.backend-jdk8-agent, Dockerfile.backend-jdk8' >&2
+          exit 1
+          ;;
+      esac
+    - |
+      cat > target/Dockerfile <<EOF
+      FROM ${MAVEN_IMAGE} AS builder
+      WORKDIR /workspace
+      COPY . .
+      RUN export JAVA_HOME=/opt/jdk1.8.0_102 \
+          && export PATH="\$PATH:/opt/jdk1.8.0_102/bin:/opt/apache-maven-3.6.3/bin" \
+          && mvn clean package -Dmaven.test.skip=${skip_mvn_test} \
+          && echo 'Build artifacts under target/:' \
+          && find target -maxdepth 1 -type f | sort \
+          && if [ -f target/APP.jar ]; then \
+               echo 'Using existing target/APP.jar'; \
+               ls -l target/APP.jar; \
+             else \
+               APP_JAR_CANDIDATE=\$(find target -maxdepth 1 -type f -name '*.jar' \
+                 ! -name 'APP.jar' \
+                 ! -name '*-sources.jar' \
+                 ! -name '*-javadoc.jar' \
+                 ! -name '*-tests.jar' \
+                 ! -name '*-test.jar' \
+                 ! -name '*-original.jar' \
+                 | sort \
+                 | head -n 1); \
+               if [ -z "\$APP_JAR_CANDIDATE" ]; then \
+                 echo 'No runnable jar found in target/. Expected a main application jar to copy as target/APP.jar.'; \
+                 find target -maxdepth 1 -type f | sort || true; \
+                 exit 1; \
+               fi; \
+               echo "Using application jar: \$APP_JAR_CANDIDATE"; \
+               cp "\$APP_JAR_CANDIDATE" target/APP.jar; \
+               ls -l target/APP.jar; \
+             fi
+      EOF
+      sed 's|^COPY ${APP_JAR} /data/target/APP.jar$|COPY --from=builder /workspace/target/APP.jar /data/target/APP.jar|' target/Dockerfile.runtime >> target/Dockerfile
+      test -f target/Dockerfile
+  artifacts:
+    paths:
+      - target/Dockerfile
+  rules:
+    - if: '$PIPELINE_MODE == "backend"'
+      when: on_success
+
+build_image:
+  stage: package
+  image: ${KANIKO_IMAGE}
+  needs: ['build_backend','prepare_dockerfile']
+  script:
+    - test -f target/Dockerfile
+    - export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
+    - export IMAGE_REGISTRY_VALUE="${REGISTRY:-${IMAGE_REGISTRY}}"
+    - /kaniko/executor --context "$CI_PROJECT_DIR" --dockerfile target/Dockerfile --destination ${IMAGE_REGISTRY_VALUE}/${image_env}/${SERVICE_NAME}:$CI_COMMIT_SHORT_SHA --cache=true --cache-repo=${IMAGE_REGISTRY_VALUE}/kaniko-cache
+  rules:
+    - if: '$PIPELINE_MODE == "backend"'
+      when: on_success
+
+notify_failure:
+  stage: notify
+  image: ${CURL_IMAGE}
+  script:
+    - test -n "$DINGTALK_WEBHOOK"
+    - |
+      curl "$DINGTALK_WEBHOOK" -H 'Content-Type: application/json' -d '{"msgtype":"text","text":{"content":"Pipeline: '$CI_PIPELINE_ID' 项目: '$CI_PROJECT_NAME' 分支: '$CI_COMMIT_BRANCH' commit: '$CI_COMMIT_SHORT_SHA' 构建失败，请检查 '$CI_PIPELINE_URL'"}}'
+  when: on_failure
+  rules:
+    - if: '$PIPELINE_MODE == "backend"'
+
+notify_success:
+  stage: notify
+  image: ${CURL_IMAGE}
+  needs: ['build_image']
+  script:
+    - test -n "$DINGTALK_WEBHOOK"
+    - |
+      curl "$DINGTALK_WEBHOOK" -H 'Content-Type: application/json' -d '{"msgtype":"text","text":{"content":"Pipeline: '$CI_PIPELINE_ID' 项目: '$CI_PROJECT_NAME' 分支: '$CI_COMMIT_BRANCH' commit: '$CI_COMMIT_SHORT_SHA' 镜像构建成功"}}'
+  rules:
+    - if: '$PIPELINE_MODE == "backend"'
+      when: on_success
+
+update_deploy_repo:
+  stage: deploy_meta
+  image: ${KUSTOMIZE_IMAGE}
+  needs: ['build_image']
+  script:
+    - test -n "$YAML_CONFIG_REPO_HTTP"
+    - test -n "$YAML_CONFIG_REPO_TOKEN"
+    - export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
+    - export DEPLOY_PATH="${DEPLOY_CONFIG_PROJECT_PATH:-$SERVICE_NAME}"
+    - export IMAGE_REGISTRY_VALUE="${REGISTRY:-${IMAGE_REGISTRY}}"
+    - export IMAGE_SOURCE_ENV="${image_source_env:-$image_env}"
+    - export DEPLOY_TARGETS="${deploy_targets:-$image_env}"
+    - export SOURCE_IMAGE_REF="${IMAGE_REGISTRY_VALUE}/${IMAGE_SOURCE_ENV}/${SERVICE_NAME}:$CI_COMMIT_SHORT_SHA"
+    - git clone --branch "${YAML_CONFIG_REPO_BRANCH:-release}" "http://project_bot:${YAML_CONFIG_REPO_TOKEN}@${YAML_CONFIG_REPO_HTTP}" yaml-config
+    - |
+      for deploy_target in ${DEPLOY_TARGETS}; do
+        target_dir="yaml-config/${DEPLOY_PATH}/${deploy_target}"
+        test -d "$target_dir"
+        cd "$target_dir"
+        echo "Updating ${target_dir} -> ${SOURCE_IMAGE_REF}"
+        if ! kustomize edit set image "${IMAGE_REGISTRY_VALUE}/${IMAGE_SOURCE_ENV}/${SERVICE_NAME}=${SOURCE_IMAGE_REF}"; then
+          kustomize edit set image "${IMAGE_REGISTRY_VALUE}/${deploy_target}/${SERVICE_NAME}=${SOURCE_IMAGE_REF}"
+        fi
+        cd "$CI_PROJECT_DIR"
+      done
+    - |
+      cd yaml-config
+      if [ -n "$(git diff)" ]; then
+        git add .
+        git config user.name 'jenkins'
+        git config user.email 'jenkins@insgeek.com'
+        git commit -m "OPS-123: sync ${SERVICE_NAME} ${DEPLOY_TARGETS} to ${IMAGE_SOURCE_ENV} image $CI_COMMIT_SHORT_SHA"
+        git push
+      else
+        echo 'no diff, skip push'
+      fi
+  rules:
+    - if: '$PIPELINE_MODE == "backend"'
+      when: on_success

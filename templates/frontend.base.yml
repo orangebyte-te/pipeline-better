@@ -1,0 +1,106 @@
+include:
+  - local: 'templates/frontend.workflow.yml'
+
+stages:
+  - build
+  - package
+  - notify
+  - deploy_meta
+
+default:
+  tags:
+    - ${RUNNER_TAG}
+  interruptible: true
+
+variables:
+  KANIKO_IMAGE: 'harbor.insgeek.cn/base/kaniko-project/executor:v1'
+  KUSTOMIZE_IMAGE: 'harbor.insgeek.cn/base/kustomize:v4.5.4'
+  SUBPATH_ENABLED: 'false'
+  NPM_REGISTRY: 'https://registry.npmmirror.com'
+  IMAGE_REGISTRY: 'harbor.insgeek.cn'
+  DOCKER_IMAGE_NAME: '${CI_PROJECT_TITLE,,}'
+  DEPLOY_CONFIG_PROJECT_PATH: 'front/${CI_PROJECT_TITLE,,}'
+  TEMPLATE_PROJECT_PATH_ENCODED: 'devops%2Fpipeline-better'
+  TEMPLATE_REF: 'main'
+
+yarn_build:
+  stage: build
+  image: node:18-alpine
+  cache:
+    key: '$CI_PROJECT_TITLE-$CI_COMMIT_REF_SLUG'
+    paths:
+      - node_modules
+      - dist
+  script:
+    - yarn config set registry "$NPM_REGISTRY"
+    - yarn install --frozen-lockfile || yarn install
+    - yarn build:${build_env}
+  rules:
+    - if: '$PIPELINE_MODE == "frontend"'
+      when: on_success
+
+build_frontend_image:
+  stage: package
+  image: ${KANIKO_IMAGE}
+  needs: ['yarn_build']
+  script:
+    - mkdir -p target
+    - |
+      /busybox/wget --header="JOB-TOKEN: $CI_JOB_TOKEN" \
+        -O target/Dockerfile \
+        "$CI_SERVER_URL/api/v4/projects/${TEMPLATE_PROJECT_PATH_ENCODED}/repository/files/dockerfile%2F${dockerfile_name}/raw?ref=${TEMPLATE_REF}" \
+        || cp dockerfile/${dockerfile_name} target/Dockerfile
+    - |
+      /busybox/wget --header="JOB-TOKEN: $CI_JOB_TOKEN" \
+        -O index.conf \
+        "$CI_SERVER_URL/api/v4/projects/${TEMPLATE_PROJECT_PATH_ENCODED}/repository/files/scripts%2F${index_conf}/raw?ref=${TEMPLATE_REF}" \
+        || cp scripts/${index_conf} index.conf
+    - |
+      EXTRA_ARGS=''
+      if [ "$SUBPATH_ENABLED" = 'true' ] && [ -n "$Dir" ]; then
+        EXTRA_ARGS="--build-arg dir=${Dir}"
+      fi
+    - export IMAGE_REGISTRY_VALUE="${REGISTRY:-${IMAGE_REGISTRY}}"
+    - /kaniko/executor --context "$CI_PROJECT_DIR" --dockerfile target/Dockerfile --destination ${IMAGE_REGISTRY_VALUE}/${image_env}/${DOCKER_IMAGE_NAME}:$CI_COMMIT_SHORT_SHA $EXTRA_ARGS --cache=true --cache-repo=${IMAGE_REGISTRY_VALUE}/kaniko-cache
+  rules:
+    - if: '$PIPELINE_MODE == "frontend"'
+      when: on_success
+
+update_frontend_deploy_repo:
+  stage: deploy_meta
+  image: ${KUSTOMIZE_IMAGE}
+  needs: ['build_frontend_image']
+  script:
+    - test -n "$YAML_CONFIG_REPO_HTTP"
+    - test -n "$YAML_CONFIG_REPO_TOKEN"
+    - export PROJECT_NAME=$(echo "$CI_PROJECT_TITLE" | tr '[:upper:]' '[:lower:]')
+    - export IMAGE_REGISTRY_VALUE="${REGISTRY:-${IMAGE_REGISTRY}}"
+    - export IMAGE_SOURCE_ENV="${image_source_env:-$image_env}"
+    - export DEPLOY_TARGETS="${deploy_targets:-$image_env}"
+    - export SOURCE_IMAGE_REF="${IMAGE_REGISTRY_VALUE}/${IMAGE_SOURCE_ENV}/${DOCKER_IMAGE_NAME}:$CI_COMMIT_SHORT_SHA"
+    - git clone --branch "${YAML_CONFIG_REPO_BRANCH:-release}" "http://project_bot:${YAML_CONFIG_REPO_TOKEN}@${YAML_CONFIG_REPO_HTTP}" yaml-config
+    - |
+      for deploy_target in ${DEPLOY_TARGETS}; do
+        target_dir="yaml-config/front/${deploy_target}/${PROJECT_NAME}"
+        test -d "$target_dir"
+        cd "$target_dir"
+        echo "Updating ${target_dir} -> ${SOURCE_IMAGE_REF}"
+        if ! kustomize edit set image "${IMAGE_REGISTRY_VALUE}/${IMAGE_SOURCE_ENV}/${DOCKER_IMAGE_NAME}=${SOURCE_IMAGE_REF}"; then
+          kustomize edit set image "${IMAGE_REGISTRY_VALUE}/${deploy_target}/${DOCKER_IMAGE_NAME}=${SOURCE_IMAGE_REF}"
+        fi
+        cd "$CI_PROJECT_DIR"
+      done
+    - |
+      cd yaml-config
+      if [ -n "$(git diff)" ]; then
+        git add .
+        git config user.name 'jenkins'
+        git config user.email 'jenkins@insgeek.com'
+        git commit -m "OPS-123: sync ${CI_PROJECT_TITLE} ${DEPLOY_TARGETS} to ${IMAGE_SOURCE_ENV} image $CI_COMMIT_SHORT_SHA"
+        git push
+      else
+        echo 'no diff, skip push'
+      fi
+  rules:
+    - if: '$PIPELINE_MODE == "frontend"'
+      when: on_success

@@ -1,0 +1,36 @@
+include:
+  - local: 'templates/maven-publish.base.yml'
+
+publish_maven_modules:
+  extends: .publish_maven
+  parallel:
+    matrix:
+      - path:
+          - protocol-algorithm-ocr
+          - protocol-business
+          - protocol-business-claim
+          - protocol-business-claim-adjust
+          - protocol-business-claim-ocr
+          - protocol-business-claim-report
+          - protocol-business-claim-vendor
+          - protocol-business-docking
+          - protocol-business-group
+          - protocol-business-insurance
+          - protocol-business-policy
+          - protocol-business-quote
+          - protocol-business-routing
+          - protocol-business-toc
+          - protocol-business-vendor-docking
+          - protocol-dataapp-ai
+          - protocol-dataapp-bi
+          - protocol-platform-calculator
+          - protocol-platform-common
+          - protocol-platform-data
+          - protocol-platform-fileservice
+          - protocol-platform-flow
+          - protocol-platform-integration
+          - protocol-platform-message
+          - protocol-platform-metadata
+          - protocol-platform-rule
+          - protocol-platform-trade
+          - protocol-platform-user

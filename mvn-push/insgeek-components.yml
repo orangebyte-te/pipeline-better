@@ -1,0 +1,15 @@
+include:
+  - local: 'templates/maven-publish.base.yml'
+
+publish_maven_modules:
+  extends: .publish_maven
+  parallel:
+    matrix:
+      - path:
+          - insgeek-dao
+          - insgeek-maven-plugin
+          - insgeek-metadata
+          - insgeek-orm
+          - insgeek-sdk
+          - insgeek-sdk-samples
+          - insgeek-template

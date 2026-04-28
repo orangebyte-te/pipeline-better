@@ -1,0 +1,18 @@
+stages:
+  - publish
+
+default:
+  tags:
+    - ${RUNNER_TAG:-dev-runner-k8s-ali}
+
+.publish_maven:
+  stage: publish
+  image: harbor.insgeek.cn/base/mvn:3.6.3
+  script:
+    - source /etc/profile || true
+    - cd "$path"
+    - pwd
+    - mvn -B clean deploy -U -Dmaven.test.skip=true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      when: on_success

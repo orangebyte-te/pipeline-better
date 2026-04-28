@@ -1,0 +1,9 @@
+include:
+  - local: 'templates/maven-publish.base.yml'
+
+publish_maven_modules:
+  extends: .publish_maven
+  parallel:
+    matrix:
+      - path:
+          - none

@@ -1,0 +1,12 @@
+FROM harbor.insgeek.cn/devops/ubuntu-24.04:v5
+LABEL maintainer="yangdong dong.yang@insgeek.com"
+
+ARG APP_JAR=target/APP.jar
+ENV JAVA_HOME=/opt/jdk1.8.0_251
+ENV PATH=$PATH:/opt/jdk1.8.0_251/bin
+
+RUN mkdir -pv /data/logs /data/target /oss
+COPY ${APP_JAR} /data/target/APP.jar
+WORKDIR /data
+
+ENTRYPOINT ["/bin/bash","-lc","java ${JAVA_OPTS} -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dsentinel.datasource.file=/data/logs -javaagent:/data/agent/skywalking-agent.jar=agent.service_name=${PROJECT_NAME},collector.backend_service=${SW_SERVER} -server -Xmx${Xmx}m -Xms${Xms}m -Xmn${Xmn}m -Xss512k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/oss/${INSGEEK_ENV}/${serviceName} -jar /data/target/APP.jar --server.port=${SERVER_PORT:-8080}"]

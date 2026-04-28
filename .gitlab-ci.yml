@@ -1,0 +1,25 @@
+stages:
+  - lint
+  - package
+
+lint_yaml:
+  stage: lint
+  image: python:3.11-alpine
+  script:
+    - pip install pyyaml yamllint
+    - python scripts/validate_yaml.py
+    - yamllint templates variables front mvn-push dockerfile
+
+package_templates:
+  stage: package
+  script:
+    - echo 'pipeline-better templates validated'
+  artifacts:
+    paths:
+      - templates/
+      - dockerfile/
+      - scripts/
+      - variables/
+      - front/
+      - mvn-push/
+      - docs/

@@ -1,0 +1,2 @@
+include:
+  - local: 'templates/maven-publish.base.yml'

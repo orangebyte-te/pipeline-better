@@ -1,0 +1,2 @@
+include:
+  - local: 'templates/frontend.workflow.yml'
