@@ -32,7 +32,7 @@
 - 失败是构建、下载、推镜像、发通知还是更新配置
 
 4. 外部依赖层
-- Sonar、GitLab API、Harbor、yaml-config、钉钉、runner 权限是否正常
+- Sonar、GitLab API、Harbor、deployment-config、钉钉、runner 权限是否正常
 
 大多数排查，按这个顺序会更快。
 
@@ -75,7 +75,7 @@
 
 当前模板直接在 workflow rules 里注入最终的 `RUNNER_TAG`。
 当前已验证的后端/前端链路使用：
-- `RUNNER_TAG=dev-runner-k8s-ali`
+- `RUNNER_TAG=generic-runner-k8s`
 
 排查顺序：
 1. 看 job 页面显示的 tags 是什么
@@ -259,7 +259,7 @@ curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" ... ref=${TEMPLATE_REF}
 
 ---
 
-# 九、yaml-config 更新失败
+# 九、deployment-config 更新失败
 
 ## 场景 9：update_deploy_repo / update_frontend_deploy_repo 失败
 
@@ -279,7 +279,7 @@ curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" ... ref=${TEMPLATE_REF}
 
 排查顺序：
 1. 先看是 clone 失败、cd 失败还是 push 失败
-2. 如果是 `cd yaml-config/...` 失败，优先怀疑目录路径变量错了
+2. 如果是 `cd deployment-config/...` 失败，优先怀疑目录路径变量错了
 3. 如果是 push 失败，优先怀疑 token 权限或保护分支策略
 4. 如果日志显示 `no diff, skip push`，说明不是失败，而是没有实际变更
 
@@ -289,7 +289,7 @@ curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" ... ref=${TEMPLATE_REF}
 
 处理建议：
 - 项目目录名不规则时，显式配置 `DEPLOY_CONFIG_PROJECT_PATH`
-- 首次接入项目时，先人工确认 yaml-config 中真实路径
+- 首次接入项目时，先人工确认 deployment-config 中真实路径
 
 ---
 
@@ -376,7 +376,7 @@ curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" ... ref=${TEMPLATE_REF}
 2. 在下载模板资产前打印最终下载 URL
 - 方便定位是路径问题还是权限问题
 
-3. 在更新 yaml-config 前打印目标目录
+3. 在更新 deployment-config 前打印目标目录
 - 方便定位 `DEPLOY_CONFIG_PROJECT_PATH` 是否有问题
 
 4. 在失败通知中补关键上下文
@@ -393,8 +393,8 @@ curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" ... ref=${TEMPLATE_REF}
 5. dist / jar 未生成 -> Kaniko build 失败
 6. Harbor 权限或地址异常 -> 镜像 push 失败
 7. Sonar token 缺失 -> sonar_scan 失败
-8. yaml-config token 无权限 -> clone/push 失败
-9. 部署目录变量不对 -> `cd yaml-config/...` 失败
+8. deployment-config token 无权限 -> clone/push 失败
+9. 部署目录变量不对 -> `cd deployment-config/...` 失败
 10. 子路径前端没传 `Dir` -> 前端镜像构建不符合预期
 
 ---

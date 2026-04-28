@@ -17,9 +17,9 @@
 
 ## 1）模板引用是否统一
 检查项：
-- 业务仓库是否统一 include `devops/pipeline-better`
+- 业务仓库是否统一 include `ci-templates/pipeline-better`
 - include 的 `ref` 是否统一为 `release`
-- 是否还有项目混用旧模板仓库 `devops/pipeline`
+- 是否还有项目混用旧模板仓库 `legacy-templates/pipeline`
 
 重点风险：
 - 同一批项目混用旧模板和新模板
@@ -31,7 +31,7 @@
 ## 2）Runner 是否可用
 检查项：
 - `templates/backend.workflow.yml` / `templates/frontend.workflow.yml` 为目标分支注入的 `RUNNER_TAG` 是否仍正确
-- 当前硬编码的 `dev-runner-k8s-ali` 对应 runner 是否在线
+- 当前硬编码的 `generic-runner-k8s` 对应 runner 是否在线
 - 如果未来重新改回 CI 变量控制，文档与模板是否同步更新
 
 重点风险：
@@ -120,11 +120,11 @@
 重点风险：
 - 新项目放到了新组里，但没继承原有 group variables
 
-## 5）yaml-config 目标路径巡检
+## 5）deployment-config 目标路径巡检
 检查项：
 - 后端项目的 `DEPLOY_CONFIG_PROJECT_PATH` 是否仍对应真实目录
 - 前端目录结构是否仍符合 `front/${image_env}/${PROJECT_NAME}`
-- 是否有人手工改了 yaml-config 目录结构而没同步模板
+- 是否有人手工改了 deployment-config 目录结构而没同步模板
 
 重点风险：
 - pipeline 没问题，但 push 更新时找不到目录
@@ -156,7 +156,7 @@
 
 ## 4）改了部署更新逻辑后
 必须确认：
-- yaml-config clone 正常
+- deployment-config clone 正常
 - 目录路径正确
 - `deploy_targets` 与 `image_source_env` 语义仍一致
 - release 分支是否仍同时更新 `uat` / `pro`
@@ -193,7 +193,7 @@
 3. runner 在线，但 tag 被改了
 4. token 没过期，但权限范围变了
 5. 新项目用了默认镜像名，实际不符合要求
-6. yaml-config 目录被人手工改过
+6. deployment-config 目录被人手工改过
 7. 子路径前端项目漏了 `Dir`
 8. Sonar 项目名规则变了，但通知脚本没跟上
 9. Maven 模块目录改名了，但 `parallel.matrix.path` 没同步
@@ -212,7 +212,7 @@
 ## 每月动作
 1. 对照文档检查模板分支/ref 一致性
 2. 抽查入口文件变量规范性
-3. 抽查 yaml-config 路径是否仍匹配
+3. 抽查 deployment-config 路径是否仍匹配
 4. 抽查模板资产文件是否齐全
 5. 抽查 1 条 release 分支流水线是否完整跑通
 
@@ -232,7 +232,7 @@
 - runner 全挂
 - token 全失效
 - 模板 ref 漂移导致批量失败
-- Harbor / yaml-config / Sonar 权限整体失效
+- Harbor / deployment-config / Sonar 权限整体失效
 
 ## P1：本周处理
 - 单类项目接入规范不统一
@@ -284,6 +284,6 @@
 2. runner
 3. token
 4. 入口变量
-5. yaml-config 路径
+5. deployment-config 路径
 
 把这 5 类盯住，模板仓库会稳定很多。

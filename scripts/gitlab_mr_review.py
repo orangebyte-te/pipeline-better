@@ -16,7 +16,7 @@ def sanitize_diff_content(diff: str) -> str:
 
 def main():
     token = os.environ['GITLAB_API_TOKEN']
-    base_url = os.environ.get('GITLAB_BASE_URL', 'http://gitlab.insgeek.cn')
+    base_url = os.environ.get('GITLAB_BASE_URL', 'http://gitlab.example.internal')
     gl = gitlab.Gitlab(url=base_url, private_token=token)
     project = gl.projects.get(os.environ['CI_PROJECT_PATH'])
     mr = project.mergerequests.get(os.environ['CI_MERGE_REQUEST_IID'])

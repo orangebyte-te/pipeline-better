@@ -21,11 +21,11 @@
 3. front/
    - `pipeline.yml`: 前端主模板
    - `workflow.yml`: 前端分支到环境的变量映射
-   - 其他 `insgeek-front-*.yml`: 前端项目入口文件
+   - 其他 `example-front-*.yml`: 前端项目入口文件
 
 4. mvn-push/
    - `pipeline.yml`: Maven 发布模板
-   - `insgeek-*.yml`: 通过 `parallel.matrix` 定义多模块发布路径
+   - `example-*.yml`: 通过 `parallel.matrix` 定义多模块发布路径
 
 5. dockerfile/
    - 提供后端、前端、UAT、Ubuntu 等不同 Dockerfile 模板
@@ -53,10 +53,10 @@
 四、原仓库调用链
 1. 后端项目调用链
    业务仓库 `.gitlab-ci.yml`
-   -> include `devops/pipeline:variables/某个服务.yml`
+   -> include `legacy-templates/pipeline:variables/某个服务.yml`
    -> 该入口文件 include `templates/workflow.yml`
    -> workflow rules 根据分支设置 `image_env`、`dockerfile_name`、`runner_tags` 等变量
-   -> `templates/default-pipline.yml` 中各 job 执行构建、扫描、构镜像、通知、更新 yaml-config
+   -> `templates/default-pipline.yml` 中各 job 执行构建、扫描、构镜像、通知、更新 deployment-config
 
    注意：原仓库中很多 variables 文件只 include 了 workflow.yml，而不是明确 include default-pipline.yml。说明它依赖外部项目可能还会再 include 主模板，或仓库历史上做过合并/裁剪，结构表达不够清晰。
 
@@ -86,7 +86,7 @@
 3. 命名不统一/存在拼写问题
    - `default-pipline.yml` 少了 e
    - `depoly-build` / `deploy-sonarqueb`
-   - `insgeek-platfrom-company.yml` 平台 platform 拼错
+   - `example-platfrom-company.yml` 平台 platform 拼错
    - `yaml-conflg` 看起来也像拼写问题
 
 4. 结构表达不够直观

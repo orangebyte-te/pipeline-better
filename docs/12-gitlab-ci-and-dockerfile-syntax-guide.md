@@ -23,14 +23,14 @@
 
 ```yaml
 include:
-  - project: "devops/pipeline-better"
+  - project: "ci-templates/pipeline-better"
     ref: main
-    file: "variables/insgeek-business-ka.yml"
+    file: "variables/example-business-ka.yml"
 ```
 
 它的意思是：
 - 当前业务仓库不自己写完整流水线
-- 而是直接复用 `devops/pipeline-better` 仓库里 `main` 分支下的 `variables/insgeek-business-ka.yml`
+- 而是直接复用 `ci-templates/pipeline-better` 仓库里 `main` 分支下的 `variables/example-business-ka.yml`
 
 这个变量文件里又会再引入：
 
@@ -56,9 +56,9 @@ include:
 ### 写法 A：引入其他仓库文件
 ```yaml
 include:
-  - project: "devops/pipeline-better"
+  - project: "ci-templates/pipeline-better"
     ref: main
-    file: "variables/insgeek-business-ka.yml"
+    file: "variables/example-business-ka.yml"
 ```
 
 含义：
@@ -141,7 +141,7 @@ build_backend:
 
 示例：
 ```yaml
-image: harbor.insgeek.cn/base/mvn:3.6.3
+image: harbor.example.internal/base/mvn:3.6.3
 ```
 
 含义：
@@ -211,16 +211,16 @@ script:
 variables:
   skip_sonarqube_err: 'false'
   dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-  service_name: 'insgeek-business-ka'
-  DOCKER_IMAGE_NAME: 'insgeek-business-ka'
-  DEPLOY_CONFIG_PROJECT_PATH: 'insgeek-business-ka'
+  service_name: 'example-business-ka'
+  DOCKER_IMAGE_NAME: 'example-business-ka'
+  DEPLOY_CONFIG_PROJECT_PATH: 'example-business-ka'
 ```
 
 含义：
 - `dockerfile_name`：指定本项目要用哪个 Dockerfile 模板
 - `service_name`：服务名
 - `DOCKER_IMAGE_NAME`：镜像名
-- `DEPLOY_CONFIG_PROJECT_PATH`：yaml-config 中的目录路径
+- `DEPLOY_CONFIG_PROJECT_PATH`：deployment-config 中的目录路径
 
 ### 变量来源一般有几层
 1. GitLab 系统内置变量
@@ -409,7 +409,7 @@ workflow:
       variables:
         PIPELINE_MODE: 'backend'
         image_env: 'uat'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 ```
 
 含义：
@@ -517,7 +517,7 @@ rules:
     deploy_targets: 'uat pro'
     skip_mvn_test: 'true'
     dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-    RUNNER_TAG: 'dev-runner-k8s-ali'
+    RUNNER_TAG: 'generic-runner-k8s'
 ```
 
 意思是：
@@ -587,14 +587,14 @@ ${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}
 典型片段：
 ```yaml
 - export DEPLOY_PATH="${DEPLOY_CONFIG_PROJECT_PATH:-$SERVICE_NAME}"
-- cd yaml-config/${DEPLOY_PATH}/${image_env}
+- cd deployment-config/${DEPLOY_PATH}/${image_env}
 - kustomize edit set image ${IMAGE_REGISTRY}/${image_env}/${SERVICE_NAME}=${IMAGE_REGISTRY}/${image_env}/${SERVICE_NAME}:$CI_COMMIT_SHORT_SHA
 ```
 
 含义：
 - `DEPLOY_PATH` 优先使用显式配置的部署目录
 - 没配就退回服务名
-- 进入 yaml-config 对应目录
+- 进入 deployment-config 对应目录
 - 用 `kustomize edit set image` 改镜像 tag
 
 这个设计的价值是：
@@ -615,7 +615,7 @@ Dockerfile 可以理解为：
 
 示例：
 ```dockerfile
-FROM harbor.insgeek.cn/devops/ubuntu-24.04:v5
+FROM harbor.example.internal/ci-tools/ubuntu-24.04:v5
 ```
 
 含义：
@@ -630,7 +630,7 @@ FROM harbor.insgeek.cn/devops/ubuntu-24.04:v5
 
 示例：
 ```dockerfile
-LABEL maintainer="yangdong dong.yang@insgeek.com"
+LABEL maintainer="maintainer@example.internal"
 ```
 
 含义：
@@ -848,7 +848,7 @@ rules:
 ```yaml
 trigger_other_project:
   trigger:
-    project: devops/deploy-jobs
+    project: ci-templates/deploy-jobs
     branch: release
 ```
 

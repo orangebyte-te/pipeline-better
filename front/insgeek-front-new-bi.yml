@@ -1,8 +1,0 @@
-include:
-  - local: 'templates/frontend.base.yml'
-
-variables:
-  dockerfile_name: 'Dockerfile.frontend-subpath'
-  index_conf: 'index-subpath.conf'
-  SUBPATH_ENABLED: 'true'
-  service_name: 'insgeek-front-new-bi'

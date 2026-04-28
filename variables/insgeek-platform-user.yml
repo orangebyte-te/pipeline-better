@@ -1,7 +1,0 @@
-include:
-  - local: 'templates/backend.base.yml'
-
-variables:
-  skip_sonarqube_err: 'false'
-  dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-  service_name: 'insgeek-platform-user'

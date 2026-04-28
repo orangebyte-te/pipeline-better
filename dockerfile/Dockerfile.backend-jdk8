@@ -1,5 +1,5 @@
-FROM harbor.insgeek.cn/base/centos7:v7
-LABEL maintainer="yangdong dong.yang@insgeek.com"
+FROM harbor.example.internal/base/centos7:v7
+LABEL maintainer="maintainer@example.internal"
 
 ARG APP_JAR=target/APP.jar
 ENV JAVA_HOME=/opt/jdk1.8.0_251

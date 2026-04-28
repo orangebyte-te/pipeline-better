@@ -2,7 +2,7 @@
 
 A structured, maintainable, and auditable GitLab CI template repository for multi-project delivery scenarios.
 
-这个仓库是对原始 `/Users/yangdong/work/pipeline` 的结构化重构版。目标不是“局部修补”，而是沉淀成一个可长期维护、可审计、可扩展、可逐步迁移落地的 GitLab CI 模板仓库。
+这个仓库是对原始 `the legacy pipeline repository` 的结构化重构版。目标不是“局部修补”，而是沉淀成一个可长期维护、可审计、可扩展、可逐步迁移落地的 GitLab CI 模板仓库。
 
 ## 1. 项目目标
 
@@ -75,14 +75,14 @@ pipeline-better/
 
 ## 6. 已验证场景
 
-当前已验证场景：`insgeek-business-test`
+当前已验证场景：`example-business-test`
 
 验证要点：
 
-- 业务仓库 `.gitlab-ci.yml` 使用：`project: "devops/pipeline-better"` + `ref: main` + `file: "variables/insgeek-business-insurance.yml"`
+- 业务仓库 `.gitlab-ci.yml` 使用：`project: "ci-templates/pipeline-better"` + `ref: main` + `file: "variables/example-business-insurance.yml"`
 - 模板入口显式指定：`service_name`、`DOCKER_IMAGE_NAME`、`DEPLOY_CONFIG_PROJECT_PATH`
-- 当前 workflow 直接注入 `RUNNER_TAG=dev-runner-k8s-ali`，因此不依赖 `RUNNER_TAG_*` CI 变量
-- release 分支会构建 `uat` 镜像，并同步更新 yaml-config 中的 `uat` / `pro` 目录到同一个镜像 tag
+- 当前 workflow 直接注入 `RUNNER_TAG=generic-runner-k8s`，因此不依赖 `RUNNER_TAG_*` CI 变量
+- release 分支会构建 `uat` 镜像，并同步更新 deployment-config 中的 `uat` / `pro` 目录到同一个镜像 tag
 - 最小必备变量：`DINGTALK_WEBHOOK`、`YAML_CONFIG_REPO_HTTP`、`YAML_CONFIG_REPO_TOKEN`、`YAML_CONFIG_REPO_BRANCH`
 - `SONAR_HOST_URL` / `SONAR_TOKEN` 仅 develop 分支必需
 

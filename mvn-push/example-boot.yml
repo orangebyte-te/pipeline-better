@@ -1,0 +1,16 @@
+include:
+  - local: 'templates/maven-publish.base.yml'
+
+publish_maven_modules:
+  extends: .publish_maven
+  parallel:
+    matrix:
+      - path:
+          - example-boot-starter
+          - example-boot-starter-calculator
+          - example-boot-starter-dao
+          - example-boot-starter-mq
+          - example-boot-starter-web
+          - example-commons
+          - example-jsymspell
+          - example-boot-starter-parent

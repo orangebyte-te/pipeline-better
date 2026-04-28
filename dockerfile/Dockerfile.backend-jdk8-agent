@@ -1,5 +1,5 @@
-FROM harbor.insgeek.cn/devops/ubuntu-24.04:v5
-LABEL maintainer="yangdong dong.yang@insgeek.com"
+FROM harbor.example.internal/ci-tools/ubuntu-24.04:v5
+LABEL maintainer="maintainer@example.internal"
 
 ARG APP_JAR=target/APP.jar
 ENV JAVA_HOME=/opt/jdk1.8.0_251

@@ -14,7 +14,7 @@ workflow:
         deploy_targets: 'dev'
         skip_mvn_test: 'true'
         dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH =~ /^develop.*/'
       variables:
@@ -23,7 +23,7 @@ workflow:
         deploy_targets: 'fat base'
         skip_mvn_test: 'false'
         dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH == "main"'
       variables:
@@ -32,7 +32,7 @@ workflow:
         deploy_targets: 'fat base'
         skip_mvn_test: 'false'
         dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH == "release"'
       variables:
@@ -42,7 +42,7 @@ workflow:
         deploy_targets: 'uat pro'
         skip_mvn_test: 'true'
         dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH =~ /^platform.*/'
       variables:
@@ -51,7 +51,7 @@ workflow:
         deploy_targets: 'platform'
         skip_mvn_test: 'true'
         dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH =~ /^vintage.*/'
       variables:
@@ -60,4 +60,4 @@ workflow:
         deploy_targets: 'vintage'
         skip_mvn_test: 'true'
         dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'

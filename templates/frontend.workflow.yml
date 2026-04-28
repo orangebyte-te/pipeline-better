@@ -6,7 +6,7 @@ workflow:
         image_env: 'dev'
         build_env: 'dev'
         deploy_targets: 'dev'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH =~ /^develop.*/'
       variables:
@@ -14,7 +14,7 @@ workflow:
         image_env: 'fat'
         build_env: 'stage'
         deploy_targets: 'fat'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH == "main"'
       variables:
@@ -22,7 +22,7 @@ workflow:
         image_env: 'fat'
         build_env: 'stage'
         deploy_targets: 'fat'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH == "release"'
       variables:
@@ -31,7 +31,7 @@ workflow:
         image_source_env: 'uat'
         build_env: 'uat'
         deploy_targets: 'uat pro'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'
 
     - if: '$CI_COMMIT_BRANCH =~ /^platform.*/'
       variables:
@@ -39,4 +39,4 @@ workflow:
         image_env: 'platform'
         build_env: 'platform'
         deploy_targets: 'platform'
-        RUNNER_TAG: 'dev-runner-k8s-ali'
+        RUNNER_TAG: 'generic-runner-k8s'

@@ -3,11 +3,11 @@ stages:
 
 default:
   tags:
-    - ${RUNNER_TAG:-dev-runner-k8s-ali}
+    - ${RUNNER_TAG:-generic-runner-k8s}
 
 .publish_maven:
   stage: publish
-  image: harbor.insgeek.cn/base/mvn:3.6.3
+  image: harbor.example.internal/base/mvn:3.6.3
   script:
     - source /etc/profile || true
     - cd "$path"

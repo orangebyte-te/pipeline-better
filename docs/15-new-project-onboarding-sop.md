@@ -23,7 +23,7 @@
 - 需要 `mvn clean package`
 - 需要构建 jar
 - 需要构建 Docker 镜像
-- 需要更新 yaml-config
+- 需要更新 deployment-config
 
 推荐入口目录：
 - `variables/`
@@ -58,11 +58,11 @@
 
 ## 1）模板仓库是否可访问
 业务仓库最终会引用：
-- `project: "devops/pipeline-better"`
+- `project: "ci-templates/pipeline-better"`
 - `ref: main`
 
 需要确认：
-- 业务项目所在组有权限读取 `devops/pipeline-better`
+- 业务项目所在组有权限读取 `ci-templates/pipeline-better`
 - 业务仓库的 pipeline 可以 include 这个仓库
 
 ## 2）Job Token 跨项目读取权限是否已放开
@@ -72,13 +72,13 @@
 - 前端 nginx 配置
 
 所以要确认：
-- `CI_JOB_TOKEN` 是否可以读取 `devops/pipeline-better` 的 raw file / repository file API
+- `CI_JOB_TOKEN` 是否可以读取 `ci-templates/pipeline-better` 的 raw file / repository file API
 
 如果这一步没打通，`prepare_dockerfile`、前端配置下载、Sonar 通知脚本下载都会失败。
 
 ## 3）Runner 是否准备好
 至少确认 workflow 当前注入的 runner tag 对应 runner 已经在线：
-- 当前验证通过的值是 `RUNNER_TAG=dev-runner-k8s-ali`
+- 当前验证通过的值是 `RUNNER_TAG=generic-runner-k8s`
 - 如果未来改回变量化控制，再补 `RUNNER_TAG_*` 变量
 
 ## 4）外部依赖是否准备好
@@ -87,12 +87,12 @@
 后端建议确认：
 - Harbor 可推送
 - Sonar 可访问
-- yaml-config 仓库可 clone / push
+- deployment-config 仓库可 clone / push
 - 钉钉 webhook 可用
 
 前端建议确认：
 - Harbor 可推送
-- yaml-config 仓库可 clone / push
+- deployment-config 仓库可 clone / push
 - 如需通知，钉钉 webhook 可用
 
 Maven 发布建议确认：
@@ -108,7 +108,7 @@ Maven 发布建议确认：
 - `YAML_CONFIG_REPO_HTTP`
 - `YAML_CONFIG_REPO_TOKEN`
 - `YAML_CONFIG_REPO_BRANCH`（建议显式配成 `release`）
-- `REGISTRY`（可选，默认 harbor.insgeek.cn）
+- `REGISTRY`（可选，默认 harbor.example.internal）
 - `SONAR_HOST_URL` / `SONAR_TOKEN`（develop 分支需要）
 
 ## 2）前端项目至少建议有
@@ -132,7 +132,7 @@ Maven 发布建议确认：
 如果 `variables/` 目录里已经有非常接近的服务，可以参考它。
 如果没有，就新建一个服务入口文件，例如：
 
-`variables/insgeek-business-demo.yml`
+`variables/example-business-demo.yml`
 
 推荐内容：
 
@@ -143,9 +143,9 @@ include:
 variables:
   skip_sonarqube_err: 'false'
   dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-  service_name: 'insgeek-business-demo'
-  DOCKER_IMAGE_NAME: 'insgeek-business-demo'
-  DEPLOY_CONFIG_PROJECT_PATH: 'insgeek-business-demo'
+  service_name: 'example-business-demo'
+  DOCKER_IMAGE_NAME: 'example-business-demo'
+  DEPLOY_CONFIG_PROJECT_PATH: 'example-business-demo'
 ```
 
 ### 这几个变量怎么判断
@@ -159,7 +159,7 @@ variables:
 - `DOCKER_IMAGE_NAME`
   - 如果镜像名与项目名一致，也建议显式写清楚
 - `DEPLOY_CONFIG_PROJECT_PATH`
-  - 对应 yaml-config 仓库里的服务目录
+  - 对应 deployment-config 仓库里的服务目录
 - `image_source_env`
   - 只有在“多个部署目录共用同一套镜像”时才需要额外理解
   - 当前 release 分支默认用 `uat` 镜像同时更新 `uat` / `pro`
@@ -170,9 +170,9 @@ variables:
 
 ```yaml
 include:
-  - project: "devops/pipeline-better"
+  - project: "ci-templates/pipeline-better"
     ref: main
-    file: "variables/insgeek-business-demo.yml"
+    file: "variables/example-business-demo.yml"
 ```
 
 注意：
@@ -204,7 +204,7 @@ include:
 重点看：
 - 是否走到 `image_env=uat`
 - 是否用了正确 runner
-- 是否能更新 yaml-config 中对应 `uat` 目录
+- 是否能更新 deployment-config 中对应 `uat` 目录
 
 ---
 
@@ -220,7 +220,7 @@ include:
 variables:
   dockerfile_name: 'Dockerfile.frontend-nginx'
   index_conf: 'index.conf'
-  service_name: 'insgeek-front-demo'
+  service_name: 'example-front-demo'
 ```
 
 ### 子路径站点常见入口文件
@@ -231,7 +231,7 @@ include:
 variables:
   dockerfile_name: 'Dockerfile.frontend-subpath'
   index_conf: 'index-subpath.conf'
-  service_name: 'insgeek-front-demo-subpath'
+  service_name: 'example-front-demo-subpath'
   SUBPATH_ENABLED: 'true'
   Dir: 'demo'
 ```
@@ -250,9 +250,9 @@ variables:
 
 ```yaml
 include:
-  - project: "devops/pipeline-better"
+  - project: "ci-templates/pipeline-better"
     ref: main
-    file: "front/insgeek-front-demo.yml"
+    file: "front/example-front-demo.yml"
 ```
 
 ## 步骤 3：验证分支构建环境
@@ -272,7 +272,7 @@ include:
 - `dist` 是否生成
 - `index.conf` 是否下载成功
 - Kaniko 是否能成功推镜像
-- yaml-config 前端目录是否更新正确
+- deployment-config 前端目录是否更新正确
 
 ---
 
@@ -300,7 +300,7 @@ publish_maven_modules:
 
 ```yaml
 include:
-  - project: "devops/pipeline-better"
+  - project: "ci-templates/pipeline-better"
     ref: main
     file: "mvn-push/demo-components.yml"
 ```
@@ -345,7 +345,7 @@ include:
 - Maven 包上传成功
 
 ## 6）再验证“能更新部署元数据”
-- yaml-config clone 成功
+- deployment-config clone 成功
 - 目录正确
 - image tag 更新成功
 - git push 成功
@@ -400,7 +400,7 @@ include:
 3. 记录首条成功 pipeline 的验证结果
 - develop 是否通过
 - release 是否通过
-- Sonar / 钉钉 / yaml-config 是否都正常
+- Sonar / 钉钉 / deployment-config 是否都正常
 
 ---
 

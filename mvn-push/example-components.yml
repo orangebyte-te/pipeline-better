@@ -1,0 +1,15 @@
+include:
+  - local: 'templates/maven-publish.base.yml'
+
+publish_maven_modules:
+  extends: .publish_maven
+  parallel:
+    matrix:
+      - path:
+          - example-dao
+          - example-maven-plugin
+          - example-metadata
+          - example-orm
+          - example-sdk
+          - example-sdk-samples
+          - example-template

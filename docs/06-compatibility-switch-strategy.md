@@ -4,16 +4,16 @@
 
 一、最小改动切换方式
 1. 后端项目
-   - 原 include: `devops/pipeline:variables/<service>.yml`
-   - 新 include: `devops/pipeline-better:variables/<service>.yml`
+   - 原 include: `legacy-templates/pipeline:variables/<service>.yml`
+   - 新 include: `ci-templates/pipeline-better:variables/<service>.yml`
 
 2. 前端项目
-   - 原 include: `devops/pipeline:front/<service>.yml`
-   - 新 include: `devops/pipeline-better:front/<service>.yml`
+   - 原 include: `legacy-templates/pipeline:front/<service>.yml`
+   - 新 include: `ci-templates/pipeline-better:front/<service>.yml`
 
 3. Maven 发布项目
-   - 原 include: `devops/pipeline:mvn-push/<service>.yml`
-   - 新 include: `devops/pipeline-better:mvn-push/<service>.yml`
+   - 原 include: `legacy-templates/pipeline:mvn-push/<service>.yml`
+   - 新 include: `ci-templates/pipeline-better:mvn-push/<service>.yml`
 
 二、切换前必须准备的变量
 - DINGTALK_WEBHOOK
@@ -25,7 +25,7 @@
 - REGISTRY
 
 补充说明
-- 当前 workflow 已直接注入 `RUNNER_TAG=dev-runner-k8s-ali`
+- 当前 workflow 已直接注入 `RUNNER_TAG=generic-runner-k8s`
 - 如未来改回变量化 runner，请同步更新模板和文档
 
 三、灰度顺序

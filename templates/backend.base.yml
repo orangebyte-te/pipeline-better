@@ -15,18 +15,18 @@ default:
   retry: 1
 
 variables:
-  MAVEN_IMAGE: 'harbor.insgeek.cn/base/mvn:3.6.3'
-  KANIKO_IMAGE: 'harbor.insgeek.cn/base/kaniko-project/executor:v1'
-  CURL_IMAGE: 'harbor.insgeek.cn/devops/curl:v1'
-  PYTHON_IMAGE: 'harbor.insgeek.cn/base/python-build:3.9-pipeline'
-  KUSTOMIZE_IMAGE: 'harbor.insgeek.cn/base/kustomize:v4.5.4'
+  MAVEN_IMAGE: 'harbor.example.internal/base/mvn:3.6.3'
+  KANIKO_IMAGE: 'harbor.example.internal/base/kaniko-project/executor:v1'
+  CURL_IMAGE: 'harbor.example.internal/ci-tools/curl:v1'
+  PYTHON_IMAGE: 'harbor.example.internal/base/python-build:3.9-pipeline'
+  KUSTOMIZE_IMAGE: 'harbor.example.internal/base/kustomize:v4.5.4'
   DOCKERFILE_REMOTE_PATH: 'dockerfile/${dockerfile_name}'
   SONAR_NOTIFY_SCRIPT: 'scripts/sonarqube_notify.py'
   GIT_STRATEGY: fetch
-  IMAGE_REGISTRY: 'harbor.insgeek.cn'
+  IMAGE_REGISTRY: 'harbor.example.internal'
   DOCKER_IMAGE_NAME: '${CI_PROJECT_TITLE}'
   DEPLOY_CONFIG_PROJECT_PATH: '${CI_PROJECT_TITLE}'
-  TEMPLATE_PROJECT_PATH_ENCODED: 'devops%2Fpipeline-better'
+  TEMPLATE_PROJECT_PATH_ENCODED: 'ci-templates%2Fpipeline-better'
   TEMPLATE_REF: 'main'
 
 cache:
@@ -78,7 +78,7 @@ build_backend:
 
 sonar_scan:
   stage: quality
-  image: harbor.insgeek.cn/base/sonar-scanner-cli:11.5
+  image: harbor.example.internal/base/sonar-scanner-cli:11.5
   script:
     - test -n "$SONAR_HOST_URL"
     - test -n "$SONAR_TOKEN"
@@ -148,8 +148,8 @@ prepare_dockerfile:
       case "${dockerfile_name}" in
         Dockerfile.backend-jdk8-agent)
           cat > target/Dockerfile.runtime <<'EOF'
-      FROM harbor.insgeek.cn/devops/ubuntu-24.04:v5
-      LABEL maintainer="yangdong dong.yang@insgeek.com"
+      FROM harbor.example.internal/ci-tools/ubuntu-24.04:v5
+      LABEL maintainer="maintainer@example.internal"
 
       ARG APP_JAR=target/APP.jar
       ENV JAVA_HOME=/opt/jdk1.8.0_251
@@ -164,8 +164,8 @@ prepare_dockerfile:
           ;;
         Dockerfile.backend-jdk8)
           cat > target/Dockerfile.runtime <<'EOF'
-      FROM harbor.insgeek.cn/base/centos7:v7
-      LABEL maintainer="yangdong dong.yang@insgeek.com"
+      FROM harbor.example.internal/base/centos7:v7
+      LABEL maintainer="maintainer@example.internal"
 
       ARG APP_JAR=target/APP.jar
       ENV JAVA_HOME=/opt/jdk1.8.0_251
@@ -276,10 +276,10 @@ update_deploy_repo:
     - export IMAGE_SOURCE_ENV="${image_source_env:-$image_env}"
     - export DEPLOY_TARGETS="${deploy_targets:-$image_env}"
     - export SOURCE_IMAGE_REF="${IMAGE_REGISTRY_VALUE}/${IMAGE_SOURCE_ENV}/${SERVICE_NAME}:$CI_COMMIT_SHORT_SHA"
-    - git clone --branch "${YAML_CONFIG_REPO_BRANCH:-release}" "http://project_bot:${YAML_CONFIG_REPO_TOKEN}@${YAML_CONFIG_REPO_HTTP}" yaml-config
+    - git clone --branch "${YAML_CONFIG_REPO_BRANCH:-release}" "http://project_bot:${YAML_CONFIG_REPO_TOKEN}@${YAML_CONFIG_REPO_HTTP}" deployment-config
     - |
       for deploy_target in ${DEPLOY_TARGETS}; do
-        target_dir="yaml-config/${DEPLOY_PATH}/${deploy_target}"
+        target_dir="deployment-config/${DEPLOY_PATH}/${deploy_target}"
         test -d "$target_dir"
         cd "$target_dir"
         echo "Updating ${target_dir} -> ${SOURCE_IMAGE_REF}"
@@ -289,11 +289,11 @@ update_deploy_repo:
         cd "$CI_PROJECT_DIR"
       done
     - |
-      cd yaml-config
+      cd deployment-config
       if [ -n "$(git diff)" ]; then
         git add .
         git config user.name 'jenkins'
-        git config user.email 'jenkins@insgeek.com'
+        git config user.email 'ci-bot@example.internal'
         git commit -m "OPS-123: sync ${SERVICE_NAME} ${DEPLOY_TARGETS} to ${IMAGE_SOURCE_ENV} image $CI_COMMIT_SHORT_SHA"
         git push
       else

@@ -1,4 +1,4 @@
-FROM harbor.insgeek.cn/devops/nginx:1.23.3
+FROM harbor.example.internal/ci-tools/nginx:1.23.3
 RUN mkdir -pv /data/logs
 ARG dir
 COPY dist /opt/dist/${dir}

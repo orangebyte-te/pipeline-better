@@ -46,9 +46,9 @@
   - `RUNNER_TAG`
 
 4. 项目入口文件里定义的变量
-- 后端示例：`variables/insgeek-business-ka.yml`
-- 前端示例：`front/insgeek-front-h5.yml`
-- Maven 发布示例：`mvn-push/insgeek-protocols.yml`
+- 后端示例：`variables/example-business-ka.yml`
+- 前端示例：`front/example-front-h5.yml`
+- Maven 发布示例：`mvn-push/example-protocols.yml`
 
 5. job 运行时通过 shell 组装出来的变量
 - 例如：
@@ -85,7 +85,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 这在“项目名、镜像名、部署目录名不一致”的场景非常重要。
 
 补充：
-- `deploy_targets` 决定要更新哪些 yaml-config 目录
+- `deploy_targets` 决定要更新哪些 deployment-config 目录
 - `image_source_env` 决定这些目录最终指向哪套镜像环境
 - 当前 release 分支的典型组合是：`image_env=uat`、`image_source_env=uat`、`deploy_targets="uat pro"`
 
@@ -131,11 +131,11 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 
 作用：
 - 决定镜像推送目录
-- 决定 yaml-config 更新目录
+- 决定 deployment-config 更新目录
 
 使用位置：
 - Kaniko 构建镜像地址
-- `yaml-config/.../${image_env}`
+- `deployment-config/.../${image_env}`
 
 是否必填：
 - 自动注入
@@ -192,7 +192,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - `default.tags`
 
 当前默认值：
-- `dev-runner-k8s-ali`（由 workflow rules 直接注入）
+- `generic-runner-k8s`（由 workflow rules 直接注入）
 
 是否必填：
 - 必须最终有值，否则 job 会卡在无 runner 可用
@@ -211,7 +211,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - `templates/frontend.base.yml`
 
 当前默认值：
-- `devops%2Fpipeline-better`
+- `ci-templates%2Fpipeline-better`
 
 作用：
 - 通过 GitLab API 下载模板仓库中的 Dockerfile、脚本、nginx 配置
@@ -279,7 +279,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 ### 9）REGISTRY / IMAGE_REGISTRY
 来源：
 - `REGISTRY`：GitLab CI variable
-- `IMAGE_REGISTRY`：模板里根据 `REGISTRY` 组装，未配置时回退 `harbor.insgeek.cn`
+- `IMAGE_REGISTRY`：模板里根据 `REGISTRY` 组装，未配置时回退 `harbor.example.internal`
 
 作用：
 - 作为镜像仓库地址
@@ -297,8 +297,8 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - 项目入口文件
 
 示例：
-- `insgeek-business-ka`
-- `insgeek-front-h5`
+- `example-business-ka`
+- `example-front-h5`
 
 作用：
 - 作为服务名的显式定义
@@ -341,11 +341,11 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - 前端：`front/${CI_PROJECT_TITLE,,}`
 
 作用：
-- 控制 yaml-config 仓库里的项目目录路径
+- 控制 deployment-config 仓库里的项目目录路径
 
 使用位置：
-- `cd yaml-config/${DEPLOY_PATH}/${image_env}`
-- 前端 `cd yaml-config/front/${image_env}/${PROJECT_NAME}`
+- `cd deployment-config/${DEPLOY_PATH}/${image_env}`
+- 前端 `cd deployment-config/front/${image_env}/${PROJECT_NAME}`
 
 是否必填：
 - 模板有默认值
@@ -418,7 +418,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - GitLab CI variable
 
 作用：
-- yaml-config 仓库地址，不带协议头外的路径也要与你 clone 方式匹配
+- deployment-config 仓库地址，不带协议头外的路径也要与你 clone 方式匹配
 
 使用位置：
 - `git clone --branch ... "http://project_bot:${YAML_CONFIG_REPO_TOKEN}@${YAML_CONFIG_REPO_HTTP}"`
@@ -431,7 +431,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - GitLab CI variable
 
 作用：
-- 访问 yaml-config 仓库的 token
+- 访问 deployment-config 仓库的 token
 
 是否必填：
 - 如果要更新部署配置，必填
@@ -444,7 +444,7 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 - `release`
 
 作用：
-- 指定克隆 yaml-config 的分支
+- 指定克隆 deployment-config 的分支
 
 是否必填：
 - 非必填，有默认值
@@ -529,9 +529,9 @@ export SERVICE_NAME="${service_name:-${DOCKER_IMAGE_NAME:-$CI_PROJECT_TITLE}}"
 variables:
   skip_sonarqube_err: 'false'
   dockerfile_name: 'Dockerfile.backend-jdk8-agent'
-  service_name: 'insgeek-business-ka'
-  DOCKER_IMAGE_NAME: 'insgeek-business-ka'
-  DEPLOY_CONFIG_PROJECT_PATH: 'insgeek-business-ka'
+  service_name: 'example-business-ka'
+  DOCKER_IMAGE_NAME: 'example-business-ka'
+  DEPLOY_CONFIG_PROJECT_PATH: 'example-business-ka'
 ```
 
 适用场景：
@@ -544,7 +544,7 @@ variables:
 variables:
   dockerfile_name: 'Dockerfile.frontend-nginx'
   index_conf: 'index.conf'
-  service_name: 'insgeek-front-h5'
+  service_name: 'example-front-h5'
 ```
 
 如果是子路径项目，常见会是：
@@ -553,7 +553,7 @@ variables:
 variables:
   dockerfile_name: 'Dockerfile.frontend-subpath'
   index_conf: 'index-subpath.conf'
-  service_name: 'insgeek-front-channel-h5'
+  service_name: 'example-front-channel-h5'
   SUBPATH_ENABLED: 'true'
   Dir: 'channel'
 ```
@@ -656,11 +656,11 @@ Maven 发布：
 - 原因：项目名和镜像名不一致却没覆盖
 
 7. `DEPLOY_CONFIG_PROJECT_PATH`
-- 问题：更新 yaml-config 目录失败
+- 问题：更新 deployment-config 目录失败
 - 原因：部署目录和仓库名不一致
 
 8. `YAML_CONFIG_REPO_TOKEN`
-- 问题：clone yaml-config 失败
+- 问题：clone deployment-config 失败
 - 原因：token 权限不足或过期
 
 ---

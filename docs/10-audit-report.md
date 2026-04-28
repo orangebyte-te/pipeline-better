@@ -26,7 +26,7 @@
 - 体检程序若按文件相对路径去推断 include，会产生假阳性，这不属于真实缺陷。
 
 仍需你在真实环境确认的运行条件：
-1. `CI_JOB_TOKEN` 是否有权限读取 `devops/pipeline-better` 仓库 raw 文件/API 文件内容
+1. `CI_JOB_TOKEN` 是否有权限读取 `ci-templates/pipeline-better` 仓库 raw 文件/API 文件内容
 2. `TEMPLATE_PROJECT_PATH_ENCODED` 是否与你 GitLab 上真实项目路径一致
 3. 业务仓库 include 的 `ref` 是否与模板内 `TEMPLATE_REF` 保持一致（当前验证通过的是 `main`）
 4. `YAML_CONFIG_REPO_HTTP`、`YAML_CONFIG_REPO_TOKEN`、`SONAR_TOKEN`、`DINGTALK_WEBHOOK` 是否已配置

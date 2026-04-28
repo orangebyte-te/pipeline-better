@@ -1,0 +1,8 @@
+include:
+  - local: 'templates/frontend.base.yml'
+
+variables:
+  dockerfile_name: 'Dockerfile.frontend-nginx'
+  index_conf: 'index.conf'
+  SUBPATH_ENABLED: 'false'
+  service_name: 'example-front-credit-library'

@@ -1,0 +1,9 @@
+include:
+  - local: 'templates/backend.base.yml'
+
+variables:
+  skip_sonarqube_err: 'false'
+  dockerfile_name: 'Dockerfile.backend-jdk8-agent'
+  service_name: 'example-business-ka'
+  DOCKER_IMAGE_NAME: 'example-business-ka'
+  DEPLOY_CONFIG_PROJECT_PATH: 'example-business-ka'

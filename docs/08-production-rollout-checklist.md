@@ -5,7 +5,7 @@
 - [ ] 导入 templates / variables / front / mvn-push / dockerfile / scripts
 - [ ] 在 GitLab 配置必需 CI 变量
 - [ ] 确认 runner tag 存在
-- [ ] 确认 Harbor、Sonar、yaml-config 仓库权限正常
+- [ ] 确认 Harbor、Sonar、deployment-config 仓库权限正常
 
 二、灰度验证
 - [ ] 选择 1 个后端项目切换 include
